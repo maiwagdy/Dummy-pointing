@@ -1,7 +1,7 @@
 
-# Yaw/Pitch
+ - **main branch** --> [pointing-dummies]( https://github.com/MIA-Ground/UGVC-26/tree/high_level/pointing_dummies)
 
-- main branch --> [pointing-dummies]( https://github.com/MIA-Ground/UGVC-26/tree/high_level/pointing_dummies)
+# Yaw/Pitch
 
 ## 1. Handle YawState 
  - Code file --> [handle-Yaw/pointing-dummies]( https://github.com/MIA-Ground/UGVC-26/blob/high_level/pointing_dummies/dummy_pointing/dummy_pointing/handle_YAW.py) 
