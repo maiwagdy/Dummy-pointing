@@ -1,5 +1,5 @@
 
- - **main branch** --> [pointing-dummies]( https://github.com/MIA-Ground/UGVC-26/tree/high_level/pointing_dummies)
+ - **main branch** --> [dummy-pointing]( https://github.com/MIA-Ground/UGVC-26/tree/high_level/pointing_dummies)
 
 # Yaw/Pitch
 
