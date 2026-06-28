@@ -170,3 +170,196 @@ Since, 15<20, therefore it returns true
 - Pitch centers the object vertically
 -----
 So, both states perform 2-axis visual tracking.
+
+
+# 4. PowerLaserState
+- Code file --> [Laser-Powering/dummy-pointing](https://github.com/MIA-Ground/UGVC-26/blob/high_level/pointing_dummies/dummy_pointing/dummy_pointing/power_laser.py)
+
+## What's the purpose of PowerLaserState?      
+Its only job is to --> **Turn on the laser once the robot is sure it is pointing at the detected target**     
+It also displays the image with the bounding box & the laser point for debugging.
+
+- Instead of publishing a number **(Float) or movement **(Twist)**,    
+this state only sends `True` or `False` to the laser.
+
+- think of it like a light switch :      
+
+          False
+            ↓
+
+        Laser OFF
+
+          True
+            ↓
+
+        Laser ON
+
+So the topic       
+`/laser_check`            
+will simply receive  `Bool(True)` to activate the laser.
+
+### Parent constructor 
+`super().__init__(outcomes=["finished"])`
+- this tells that this state has only one possible output,
+unlike the other states, there is no,      
+`"lost"`
+or
+`"continue"`
+because once the laser turns on, the mission is finished.
+
+## executing function
+Again, the state begins running here.
+`def execute(self, blackboard):`
+
+first,     
+`self.node.get_logger().info("Attempting to activate Laser")`   
+it just prints **"attemting to activate laser"** to the terminal
+
+### main loop 
+`while rclpy.ok():`    
+Exactly like before, as long as ROS is running --> keep checking.
+
+## Updating to the camera
+`blackboard.mono_subscriber.spin(timeout=0.001)`
+
+- This lets the camera subscriber process incoming ROS messages. without it the camera image never updates.       
+then, 
+`frame = blackboard.mono_subscriber.get_frame()`     
+this gets the latest image.
+
+for example,  
+
+            Camera
+               ↓
+             Frame
+               ↓
+        PowerLaserState
+
+## Check if the camera exists
+
+Sometimes the camera hasn't produced an image yet       
+`if frame is None: continue`     
+so,   `frame = None`  --> means that there's no image but, instead of crashing the loop waits,       
+`continue`  --> goes back to the loop.
+
+## Checking the target's existence
+`if bbox != [0,0,0,0]:`  & the detector returns `[0,0,0,0]` when nothing is detected, so `bbox != [0,0,0,0]` means --> a real target has been found.
+
+## Finding the center if the target
+`cx = int((x1+x2)/2.0)`       
+`cy = int((y1+y2)/2.0)`        
+ **--> this is the center of the target.**         
+ example:             
+
+           Top Left
+           (100,80)
+
+          Bottom Right
+           (300,240)
+
+center :        
+**((100+300)/2, (80+240)/2) = (200,160)**       
+so, 
+
+            cx = 200
+            cy = 160
+this is where the laser should point.
+
+## Creating ROS message 
+`msg = Bool()`        
+- this creates an empty boolean message.      
+initially, 
+
+          msg
+           ↓
+         False 
+then, `msg.data = True`      
+now it becomes, 
+
+          msg
+           ↓
+          True
+
+## Publishing
+`self.laser_pub.publish(msg)`
+
+- this sends, **True** over **ROS**        
+think of it like this,
+
+       PowerLaserState
+             ↓ 
+            True
+             ↓
+        /laser_check
+             ↓
+        Laser Driver
+             ↓
+       Laser turns ON
+- nothing is sent exept **True**.
+
+## Logging message
+                self.node.get_logger().info(
+                      f"LASER ACTIVATED ON TARGET at ({cx}, {cy})"
+                     )                                                         </> python
+supposing that, 
+- **cx = 320**
+- **cy = 210** 
+- Terminal **-->**
+
+            LASER ACTIVATED ON TARGET at (320,210)  
+
+## Drawing the center
+                    cv2.circle(
+                        frame,
+                       (cx,cy),
+                      5,
+                     (0,0,255),
+                     -1
+                 )                                   </> python
+- this draws a **filled red dot** at the center of the bounding box; 
+
+                    +----------------+
+                    |                |
+                    |       ●        |
+                    |                |
+                    +----------------+ 
+This lets you visually verify that the computed center matches the target.
+
+## Showing the image
+          cv2.imshow(
+            "Laser Activation",
+              frame
+           )              </> python
+- this opens a window called
+
+               Laser Activation
+--> showing the frame.
+
+then, 
+`cv2.waitKey(1)`
+
+**Updates the OpenCV window so the latest frame is displayed.**
+
+## Finish the state
+
+`return "finished"`
+Once the laser has been activated & the frame displayed, the state exits immediately.
+
+So the sequence is as follows;
+
+            Target detected
+                  │
+                  ▼
+          Calculate center
+                  │
+                  ▼
+          Publish Bool(True)
+                  │
+                  ▼
+           Laser turns ON
+                  │
+                  ▼
+        Draw debugging graphics
+                  │
+                  ▼
+          Return "finished"
